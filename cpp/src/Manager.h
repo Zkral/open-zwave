@@ -584,6 +584,15 @@ OPENZWAVE_EXPORT_WARNINGS_ON
 		uint32 GetNodeNeighbors( uint32 const _homeId, uint8 const _nodeId, uint8** _nodeNeighbors );
 
 		/**
+		 * brief Get the bitmap of this node's neighbors
+		 *
+		 * \param _homeId The Home ID of the Z-Wave controller that manages the node.
+		 * \param _nodeId The ID of the node to query.
+		 * \param _nodeNeighbors A vector to hold the list of neighbors
+		 */
+		void GetNodeNeighbors(const uint32 _homeId, const uint8 _nodeId, std::vector<uint8> &_nodeNeighbors);
+
+		/**
 		 * \brief Get the manufacturer name of a device
 		 * The manufacturer name would normally be handled by the Manufacturer Specific command class,
 		 * taking the manufacturer ID reported by the device and using it to look up the name from the

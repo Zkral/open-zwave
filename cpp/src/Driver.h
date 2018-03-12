@@ -31,6 +31,7 @@
 #include <string>
 #include <map>
 #include <list>
+#include <vector>
 
 #include "Defs.h"
 #include "Group.h"
@@ -416,6 +417,7 @@ OPENZWAVE_EXPORT_WARNINGS_ON
 		uint8 GetNodeSpecific( uint8 const _nodeId );
 		string GetNodeType( uint8 const _nodeId );
 		uint32 GetNodeNeighbors( uint8 const _nodeId, uint8** o_neighbors );
+		void GetNodeNeighbors(const uint8 _nodeId, std::vector<uint8> &o_neighbors);
 
 		string GetNodeManufacturerName( uint8 const _nodeId );
 		string GetNodeProductName( uint8 const _nodeId );

@@ -4796,6 +4796,24 @@ uint32 Driver::GetNodeNeighbors
 }
 
 //-----------------------------------------------------------------------------
+// <Driver::GetNodeNeighbors>
+// Gets the neighbors for a node
+//-----------------------------------------------------------------------------
+void Driver::GetNodeNeighbors
+(
+	const uint8 _nodeId,
+	std::vector<uint8> &o_neighbors
+)
+{
+	LockGuard LG(m_nodeMutex);
+
+	if (Node *node = GetNode(_nodeId)) {
+		node->GetNeighbors(o_neighbors);
+	}
+}
+
+
+//-----------------------------------------------------------------------------
 // <Driver::GetNodeManufacturerName>
 // Get the manufacturer name for the node with the specified ID
 // Returns a copy of the string rather than a const ref for thread safety

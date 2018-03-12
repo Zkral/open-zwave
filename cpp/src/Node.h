@@ -315,7 +315,8 @@ namespace OpenZWave
 			uint8 GetGeneric()const{ return m_generic; }
 			uint8 GetSpecific()const{ return m_specific; }
 			string const& GetType()const{ return m_type; }
-			uint32 GetNeighbors( uint8** o_associations );
+			uint32 GetNeighbors(uint8 **o_neighbors);
+			void GetNeighbors(std::vector<uint8> &o_neighbors);
 			bool IsController()const{ return ( m_basic == 0x01 || m_basic == 0x02 ) && ( m_generic == 0x01 || m_generic == 0x02 ); }
 			bool IsAddingNode() const { return m_addingNode; }	/* These three *AddingNode functions are used to tell if we this node is just being discovered. Currently used by the Security CC to initiate the Network Key Exchange */
 			void SetAddingNode() { m_addingNode = true; }

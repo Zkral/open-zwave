@@ -839,7 +839,7 @@ string Node::GetQueryStageName
 //-----------------------------------------------------------------------------
 uint32 Node::GetNeighbors
 (
-		uint8** o_neighbors
+		uint8 **o_neighbors
 )
 {
 	// determine how many neighbors there are
@@ -878,6 +878,29 @@ uint32 Node::GetNeighbors
 
 	*o_neighbors = neighbors;
 	return numNeighbors;
+}
+
+//-----------------------------------------------------------------------------
+// <Node::GetNeighbors>
+// Gets the neighbors of a node
+//-----------------------------------------------------------------------------
+void Node::GetNeighbors
+(
+	std::vector<uint8> &o_neighbors
+)
+{
+	if (m_queryStage < QueryStage_Session) {
+		return;
+	}
+
+	o_neighbors.clear();
+	for (int by = 0; by < 29; by++) {
+		for (int bi = 0; bi < 8; bi++) {
+			if ((m_neighbors[by] & (0x01 << bi))) {
+				o_neighbors.push_back(by * 8 + bi);
+			}
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------

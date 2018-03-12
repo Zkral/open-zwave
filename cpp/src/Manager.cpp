@@ -1104,6 +1104,22 @@ uint32 Manager::GetNodeNeighbors
 	return 0;
 }
 
+//----------------------------------------------------------------------------
+// <Manager::GetNodeNeighbors>
+// Get the bitmap of this node's neighbors
+//-----------------------------------------------------------------------------
+void Manager::GetNodeNeighbors
+(
+	const uint32 _homeId,
+	const uint8 _nodeId,
+	std::vector<uint8> &o_neighbors
+)
+{
+	if (Driver* driver = GetDriver(_homeId)) {
+		return driver->GetNodeNeighbors(_nodeId, o_neighbors);
+	}
+}
+
 //-----------------------------------------------------------------------------
 // <Manager::GetNodeManufacturerName>
 // Get the manufacturer name of a node
