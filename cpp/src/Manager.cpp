@@ -2931,6 +2931,42 @@ bool Manager::SetValueListSelection
 }
 
 //-----------------------------------------------------------------------------
+// <Manager::SetValueListSelection>
+// Sets the selected item in a list by value
+//-----------------------------------------------------------------------------
+bool Manager::SetValueListSelection
+(
+		ValueID const& _id,
+		int32 _selectedValue
+)
+{
+	bool res = false;
+
+	if( ValueID::ValueType_List == _id.GetType() )
+	{
+		if( Driver* driver = GetDriver( _id.GetHomeId() ) )
+		{
+			if( _id.GetNodeId() != driver->GetControllerNodeId() )
+			{
+				LockGuard LG(driver->m_nodeMutex);
+				if( ValueList* value = static_cast<ValueList*>( driver->GetValue( _id ) ) )
+				{
+					res = value->SetByValue( _selectedValue );
+					value->Release();
+				} else {
+					OZW_ERROR(OZWException::OZWEXCEPTION_INVALID_VALUEID, "Invalid ValueID passed to SetValueListSelection");
+				}
+			}
+
+		}
+	} else {
+		OZW_ERROR(OZWException::OZWEXCEPTION_CANNOT_CONVERT_VALUEID, "ValueID passed to SetValueListSelection is not a List Value");
+	}
+
+	return res;
+}
+
+//-----------------------------------------------------------------------------
 // <Manager::SetValue>
 // Sets the value from a string
 //-----------------------------------------------------------------------------

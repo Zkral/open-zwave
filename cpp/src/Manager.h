@@ -1313,6 +1313,21 @@ OPENZWAVE_EXPORT_WARNINGS_ON
 		bool SetValueListSelection( ValueID const& _id, string const& _selectedItem );
 
 		/**
+		 * \brief Sets the selected item in a list.
+		 * Due to the possibility of a device being asleep, the command is assumed to succeed, and the value
+		 * held by the node is updated directly.  This will be reverted by a future status message from the device
+		 * if the Z-Wave message actually failed to get through.  Notification callbacks will be sent in both cases.
+		 * \param _id The unique identifier of the list value.
+		 * \param _selectedValue An integer matching the new selected item in the list.
+		 * \return true if the value was set.  Returns false if the selection is not in the list, or if the value is not a ValueID::ValueType_List.
+		 * The type can be tested with a call to ValueID::GetType
+		 * \throws OZWException with Type OZWException::OZWEXCEPTION_INVALID_VALUEID if the ValueID is invalid
+		 * \throws OZWException with Type OZWException::OZWEXCEPTION_CANNOT_CONVERT_VALUEID if the Actual Value is off a different type
+		 * \throws OZWException with Type OZWException::OZWEXCEPTION_INVALID_HOMEID if the Driver cannot be found
+		 */
+		bool SetValueListSelection( ValueID const& _id, int32 _selectedValue );
+
+		/**
 		 * \brief Refreshes the specified value from the Z-Wave network.
 		 * A call to this function causes the library to send a message to the network to retrieve the current value
 		 * of the specified ValueID (just like a poll, except only one-time, not recurring).
