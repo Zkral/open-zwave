@@ -3836,7 +3836,7 @@ string const Node::GetMetaData(MetaDataFields field) {
 // <Node::GetMetaDataId>
 // Translate the MetaData String to a ID
 //-----------------------------------------------------------------------------
-Node::MetaDataFields const Node::GetMetaDataId(string name) {
+Node::MetaDataFields Node::GetMetaDataId(string name) {
 	if (name == "OzwInfoPage") return MetaData_OzwInfoPage;
 	if (name == "ZWProductPage") return MetaData_ZWProductPage;
 	if (name == "ProductPic") return MetaData_ProductPic;
