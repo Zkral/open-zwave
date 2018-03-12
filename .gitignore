@@ -53,3 +53,5 @@ ozw_config
 .idea/
 .idea/*
 ozw_config
+/Doxyfile
+/docs/api
