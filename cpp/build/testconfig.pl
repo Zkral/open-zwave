@@ -9,6 +9,16 @@ use Getopt::Long qw(GetOptions);
 #use Digest::SHA1::File qw( file_md5_hex );
 use Digest::file qw(digest_file_hex);
 
+
+my @metadatatypeneeded = (
+                'FrequencyName',
+                'Identifier',
+                'ZWProductPage'
+        );
+
+
+
+
 my %errors = ();
 my %warnings = ();
 
@@ -45,20 +55,12 @@ use strict;
 use warnings;
 my $file = $_[0];
 my $count = 1;
-open my $info, $file or die "Could not open $file: $!";
-while( my $line = <$info>)  {
-	if ($line =~ /[[:^ascii:]]/) {
-		LogError($file, 5, "Line $count, contains non ASCII characters");
-	}
-	++$count;
-}
-close $info;
 
 # create object
 my $xml = new XML::Simple;
 
 # read XML file
-my $data = $xml->XMLin($_[0], ForceArray => [ 'Group' ]);
+my $data = $xml->XMLin($_[0], ForceArray => [ 'Group', 'MetaDataItem', 'Entry' ], KeyAttr => { CommandClass=>"id"});
 
 # print output
 #print Dumper($data->{CommandClass}->{133});
@@ -71,12 +73,12 @@ foreach my $rev ($data)
 	{
 		if ($CFG::versiondb{$_[0]}{md5} ne $md5) 
 		{
-			my $dbr = $CFG::versiondb{$_[0]}->{Revision};
-			my $fr = $rev->{Revision};
-			if ($dbr ge $fr )
+			my $dbr = int $CFG::versiondb{$_[0]}->{Revision};
+			my $fr = int $rev->{Revision};
+			if ($dbr >= $fr )
 			{
 				print $_[0]." - md5 does not match Database - Database Revision:";
-				print $CFG::versiondb{$_[0]}->{Revision}." File Revision:".int $rev->{Revision};
+				print $dbr." File Revision:".$fr;
 				print "\n";
 				LogError($_[0], 8, "Revision Number Was Not Bumped");	
 			} else {
@@ -95,7 +97,7 @@ foreach my $rev ($data)
 		print($_[0]." - Adding new file to Database\n");
 	}
 }
-
+#print Dumper($data->{CommandClass}->{133}->{Associations}->{Group});
 foreach my $group ($data->{CommandClass}->{133}->{Associations}->{Group}) 
 	{
 		if (defined($group)) 
@@ -123,7 +125,35 @@ foreach my $group ($data->{CommandClass}->{133}->{Associations}->{Group})
 			LogWarning($_[0], 3, "No Association Groups Defined for device");
 		}
 	}
-     $data = $xml->XMLin($_[0], ForceArray => [ 'Value' ]);
+foreach my $metadataitem ($data->{MetaData}) 
+	{
+		if (defined($metadataitem)) { 
+			my $gotrev = 0;
+			#Check if we have a ChangeLog Entry for this version 
+			foreach my $changelog (@{$metadataitem->{ChangeLog}->{Entry}}) {
+				if ($data->{Revision} == $changelog->{'revision'}) {
+					$gotrev = 1;
+				}
+			}
+			if ($gotrev == 0) {
+				LogError($_[0], 9, "No Change Log Entry for this revision");
+			}
+			#now make sure required attributes have type/id entries
+			my %params = map { $_ => 1 } @metadatatypeneeded;
+			foreach my $mdi (@{$metadataitem->{MetaDataItem}}) {
+				if (exists $params{$mdi->{name}}) {
+					if (!defined($mdi->{type})) {
+						LogError($_[0], 10, "Type Identifier Required for $mdi->{name}");
+					}
+					if (!defined($mdi->{id})) {
+						LogError($_[0], 11, "ID Identifier Required for $mdi->{name}");
+					}
+				}
+			}
+			
+		}
+	}
+     $data = $xml->XMLin($_[0], ForceArray => [ 'Value', 'MetaDataItem' ], KeyAttr => { CommandClass=>"id"});
      # print output
      foreach my $valueItem ($data->{CommandClass}->{112}->{Value}) {
          if (defined($valueItem)) {
@@ -152,6 +182,64 @@ foreach my $group ($data->{CommandClass}->{133}->{Associations}->{Group})
 }
 
 # check files match entries in manufacture_specific.xml 
+
+# check common config file mistakes 
+sub CheckMetaDataID {
+
+	use strict;
+	use warnings;
+	my $file = $_[0];
+	my $type = $_[1];
+	my $id = $_[2];
+	my $count = 1;
+	
+	# create object
+	my $xml = new XML::Simple;
+	
+	# read XML file
+	my $data = $xml->XMLin($_[0], ForceArray => [ 'Group', 'MetaDataItem', 'Entry' ], KeyAttr => { CommandClass=>"id"});
+
+	foreach my $metadataitem ($data->{MetaData}) 
+	{
+		if (defined($metadataitem)) { 
+			#now make sure required attributes have the right type/id entries
+			foreach my $param (@metadatatypeneeded) {
+				my $gottype = 0;
+				my $gotid = 0;
+				foreach my $mdi (@{$metadataitem->{MetaDataItem}}) {
+					if ($mdi->{name} eq $param) {					
+						if (!defined($mdi->{type})) {
+							LogError($_[0], 10, "Type Identifier Required for $mdi->{name}");
+						} else {
+							if ($mdi->{type} eq $type) {
+								$gottype = 1; 
+							}
+						}
+					
+						if (!defined($mdi->{id})) {
+							LogError($_[0], 11, "ID Identifier Required for $mdi->{name}");
+						} else {
+							if ($mdi->{id} eq $id) {
+								$gotid = 1;
+							}
+						}
+					}
+				}
+				if ($gottype == 0) {
+					LogWarning($_[0], 12, "No Matching Type Entry in Metadata $param for manufacturer_specific entry $type:$id");
+				
+				}
+				if ($gotid == 0) {
+					LogWarning($_[0], 12, "No Matching ID Entry in Metadata $param for manufacturer_specific entry $type:$id");
+				}
+			}
+			
+		}
+	}
+
+
+}
+
 
 sub CheckFileExists {
 my %configfiles = map { lc $_ => 1} @{$_[0]};
@@ -206,6 +294,7 @@ foreach my $manu (@{$data->{Manufacturer}})
 				} else {
 					delete $configfiles{lc "config/$config->{config}"}; 
 				}
+				CheckMetaDataID("config/".$config->{config}, $config->{type}, $config->{id});
 			}
 		}
 	}
@@ -217,6 +306,79 @@ foreach my $unreffile (keys %configfiles)
 	LogWarning("manufacturer_specific.xml", 7, "Unreferenced Config File $unreffile present on file system");
 }
 }
+
+sub CheckLocalization {
+my %configfiles = map { lc $_ => 1} @{$_[0]};
+# create object
+my $xml = new XML::Simple;
+my $data = $xml->XMLin("config/Localization.xml", KeyAttr => "", ForceArray => [ 'Localization' ] );
+# do a check of MFS Revision etc 
+my $md5 = digest_file_hex("config/Localization.xml", "SHA-512");
+if (defined($CFG::versiondb{"config/Localization.xml"}))
+	{
+	if ($CFG::versiondb{"config/Localization.xml"}{md5} != $md5) 
+		{
+		my $dbr = $CFG::versiondb{"config/Localization.xml"}->{Revision};
+		my $fr = $data->{Revision};
+		if ($dbr ge $fr )
+		{
+			print "config/Localization.xml"." - md5 does not match Database - Database Revision:";
+			print $CFG::versiondb{"config/Localization.xml"}->{Revision}." File Revision:".int $data->{Revision};
+			print "\n";
+			LogError("config/Localization.xml", 8, "Revision Number Was Not Bumped");	
+		} else {
+			my %versions;
+			$versions{md5} = $md5;
+			$versions{Revision} = $data->{Revision};
+			$CFG::versiondb{"config/Localization.xml"} = \%versions;
+			print("config/Localization.xml"." - Updating Database\n");
+		}			
+	}
+} else { 
+	my %versions;
+	$versions{md5} = $md5;
+	$versions{Revision} = $data->{Revision};
+	$CFG::versiondb{"config/Localization.xml"} = \%versions;
+	print("config/Localization.xml"." - Adding new file to Database\n");
+}
+}
+
+sub CheckNotificationCCTypes {
+my %configfiles = map { lc $_ => 1} @{$_[0]};
+# create object
+my $xml = new XML::Simple;
+my $data = $xml->XMLin("config/NotificationCCTypes.xml", KeyAttr => "", ForceArray => [ 'NotificationTypes' ] );
+# do a check of MFS Revision etc 
+my $md5 = digest_file_hex("config/NotificationCCTypes.xml", "SHA-512");
+if (defined($CFG::versiondb{"config/NotificationCCTypes.xml"}))
+	{
+	if ($CFG::versiondb{"config/NotificationCCTypes.xml"}{md5} != $md5) 
+		{
+		my $dbr = $CFG::versiondb{"config/NotificationCCTypes.xml"}->{Revision};
+		my $fr = $data->{Revision};
+		if ($dbr ge $fr )
+		{
+			print "config/NotificationCCTypes.xml"." - md5 does not match Database - Database Revision:";
+			print $CFG::versiondb{"config/NotificationCCTypes.xml"}->{Revision}." File Revision:".int $data->{Revision};
+			print "\n";
+			LogError("config/NotificationCCTypes.xml", 8, "Revision Number Was Not Bumped");	
+		} else {
+			my %versions;
+			$versions{md5} = $md5;
+			$versions{Revision} = $data->{Revision};
+			$CFG::versiondb{"config/NotificationCCTypes.xml"} = \%versions;
+			print("config/NotificationCCTypes.xml"." - Updating Database\n");
+		}			
+	}
+} else { 
+	my %versions;
+	$versions{md5} = $md5;
+	$versions{Revision} = $data->{Revision};
+	$CFG::versiondb{"config/NotificationCCTypes.xml"} = \%versions;
+	print("config/NotificationCCTypes.xml"." - Adding new file to Database\n");
+}
+}
+
 
 sub PrettyPrintErrors() {
 	if (length(%errors) > 1) {
@@ -412,7 +574,8 @@ foreach my $key (@dirs)
   	}
 } 
 CheckFileExists(\@filelist);
-
+CheckLocalization();
+CheckNotificationCCTypes();
 
 if ($doxml == 0) { 
 	PrettyPrintErrors();

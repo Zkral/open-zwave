@@ -212,6 +212,18 @@ void OnNotification
 		case Notification::Type_DriverReady:
 		{
 			g_homeId = _notification->GetHomeId();
+			printf("Driver ready with HomeID: 0x%.8x\n", g_homeId);
+			bool ext_tx = Manager::Get()->HasExtendedTxStatus(g_homeId);
+
+			if (ext_tx)
+			{
+				printf("Controller has extended TxStatus.\n");
+			}
+			else
+			{
+				printf("Controller does not have extended TxStatus.\n");
+			}
+
 			break;
 		}
 
@@ -270,8 +282,11 @@ int main( int argc, char* argv[] )
 
 	pthread_mutex_lock( &initMutex );
 
+	// petergebruers replace getVersionAsString() with getVersionLongAsString() because
+	// the latter prints more information, based on the status of the repository
+	// when "make" was run. A Makefile gets this info from git describe --long --tags --dirty
 
-	printf("Starting MinOZW with OpenZWave Version %s\n", Manager::getVersionAsString().c_str());
+	printf("Starting MinOZW with OpenZWave Version %s\n", Manager::getVersionLongAsString().c_str());
 
 	// Create the OpenZWave Manager.
 	// The first argument is the path to the config files (where the manufacturer_specific.xml file is located
@@ -339,7 +354,7 @@ int main( int argc, char* argv[] )
 			NodeInfo* nodeInfo = *it;
 
 			// skip the controller (most likely node 1)
-			if( nodeInfo->m_nodeId == 1) continue;
+			//if( nodeInfo->m_nodeId == 1) continue;
 
 			printf("NodeID: %d \n ", nodeInfo->m_nodeId);
 			printf("\t NodeName: %s \n ", Manager::Get()->GetNodeName(nodeInfo->m_homeId,nodeInfo->m_nodeId).c_str());
